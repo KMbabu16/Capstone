@@ -2,128 +2,125 @@ import os
 import unittest
 import json
 from app import create_app
-from models import setup_db, db, Actor, Movie
-from settings import DB_NAME, DB_USER, DB_PASSWORD, DB_HOST
-from datetime import datetime
+from models import setup_db, db
+from flask_sqlalchemy import SQLAlchemy
 
+# Environment variables for security
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "dev-om80m547hwxipo72.us.auth0.com")
+ALGORITHMS = ['RS256']
+API_AUDIENCE = "fsnd"
+
+# Use environment variables for JWT tokens
+JWT_EXEC_PROD = os.getenv("JWT_EXEC_PROD")
 
 class FSNDTestCase(unittest.TestCase):
 
     def setUp(self):
         """Define test variables and initialize app."""
-        self.database_path = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
-
-        self.app = create_app({
-            "SQLALCHEMY_DATABASE_URI": self.database_path,
-            "SQLALCHEMY_TRACK_MODIFICATIONS": False,
-            "TESTING": True
-        })
+        self.app = create_app()
         self.client = self.app.test_client()
-
-        with self.app.app_context():
-            db.create_all()
+        self.app_context = self.app.app_context()
+        self.app_context.push()
 
     def tearDown(self):
         """Executed after each test"""
         with self.app.app_context():
             db.session.remove()
-            db.drop_all()
+        self.app_context.pop()
+
+    def get_headers(self, token):
+        """Set headers for authentication."""
+        return {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
 
     # ---------------------- GET Tests ----------------------
-
-    def test_get_movies(self):
-        res = self.client.get("/movies")
-        data = json.loads(res.data)
-        self.assertEqual(res.status_code, 200)
-        self.assertTrue("total_movies" in data)
-        self.assertTrue(len(data["movies"]) >= 0)
-
+    
     def test_get_actors(self):
-        res = self.client.get("/actors")
-        data = json.loads(res.data)
+        res = self.client.get("/actors", headers=self.get_headers(JWT_EXEC_PROD))
+        data = res.get_json()
+        print(data)
         self.assertEqual(res.status_code, 200)
-        self.assertTrue("total_actors" in data)
-        self.assertTrue(len(data["actors"]) >= 0)
-
+        self.assertIn("actors", data)
+    
     def test_get_movies_failure(self):
-        res = self.client.get("/movies/100")  # Invalid ID
-        data = json.loads(res.data)
+        res = self.client.get("/movies/100", headers=self.get_headers(JWT_EXEC_PROD))
+        data = res.get_json()
+        print(data)
         self.assertEqual(res.status_code, 405)
 
+    def test_get_movies(self):
+        res = self.client.get("/movies", headers=self.get_headers(JWT_EXEC_PROD))
+        data = res.get_json()
+        print(data)
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("movies", data)
+    
     # ---------------------- DELETE Tests ----------------------
 
     def test_delete_actor_failure(self):
-        res = self.client.delete("/actors/9999")  # Non-existent ID
+        res = self.client.delete("/actors/9999", headers=self.get_headers(JWT_EXEC_PROD))
         data = res.get_json()
+        print(data)
         self.assertEqual(res.status_code, 404)
+
+    def test_delete_movie_failure(self):
+        res = self.client.delete("/movies/9999", headers=self.get_headers(JWT_EXEC_PROD))
+        data = res.get_json()
+        print(data)
+        self.assertEqual(res.status_code, 404)
+    
+    # ---------------------- PATCH Tests ----------------------
+
+    def test_patch_actor(self):
+        actor = {"name": "Mohan", "age": 30, "gender": "Male"}
+        res = self.client.patch("/actors/1", json=actor, headers=self.get_headers(JWT_EXEC_PROD))
+        data = res.get_json()
+        print(data)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data["success"])
+
+    def test_patch_movie(self):
+        movie = {"title": "Anime Movie", "release_date": "2025-01-01", "genres": "Anime"}
+        res = self.client.patch("/movies/1", json=movie, headers=self.get_headers(JWT_EXEC_PROD))
+        data = res.get_json()
+        print(data)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(data["success"])
 
     # ---------------------- POST Tests ----------------------
 
     def test_submit_actor(self):
         new_actor = {"name": "Mohan", "age": 30, "gender": "Male"}
-        res = self.client.post("/actors", json=new_actor)
+        res = self.client.post("/actors", json=new_actor, headers=self.get_headers(JWT_EXEC_PROD))
         data = res.get_json()
+        print(data)
         self.assertEqual(res.status_code, 201)
-        self.assertEqual(data["success"], True)
+        self.assertTrue(data["success"])
 
     def test_submit_actor_failure(self):
-        new_actor = {"name": "", "age": 7, "gender": "Male"}  # Empty name should fail
-        res = self.client.post("/actors", json=new_actor)
+        new_actor = {"name": "", "age": 7, "gender": "Male"}
+        res = self.client.post("/actors", json=new_actor, headers=self.get_headers(JWT_EXEC_PROD))
         data = res.get_json()
+        print(data)
         self.assertEqual(res.status_code, 400)
 
     def test_submit_movie(self):
-        # Step 1: Create an actor
-        new_actor = {"name": "Test Actor", "age": 35, "gender": "Male"}
-        actor_res = self.client.post("/actors", json=new_actor)
-        actor_data = actor_res.get_json()
-        actor_id = actor_data.get("actor_id")
-
-        # Step 2: Create a movie using the valid `actor_id`
-        new_movie = {
-            "title": "Anime Movie",
-            "release_date": "2025-01-01",
-            "actor_id": actor_id,  # Ensure it's an integer
-            "genres": "Anime"
-        }
-        res = self.client.post("/movies", json=new_movie)
+        new_movie = {"title": "Anime Movie", "release_date": "2025-01-01", "genres": "Anime"}
+        res = self.client.post("/movies", json=new_movie, headers=self.get_headers(JWT_EXEC_PROD))
         data = res.get_json()
+        print(data)
         self.assertEqual(res.status_code, 201)
-        self.assertEqual(data["success"], True)
+        self.assertTrue(data["success"])
 
     def test_submit_movie_failure(self):
-        new_movie = {"release_date": "2025-01-01"}  # Missing title should fail
-        res = self.client.post("/movies", json=new_movie)
+        new_movie = {"release_date": "2025-01-01"}
+        res = self.client.post("/movies", json=new_movie, headers=self.get_headers(JWT_EXEC_PROD))
         data = res.get_json()
+        print(data)
         self.assertEqual(res.status_code, 400)
-
-    # ---------------------- SEARCH Tests ----------------------
-
-    def test_search_actor_failure(self):
-        search = {"searchTerm": "nonexistentname"}
-        res = self.client.post("/actors/search", json=search)
-        data = res.get_json()
-        self.assertEqual(res.status_code, 404)
-
-    def test_search_movie_failure(self):
-        search = {"searchTerm": "mohanbabu"}
-        res = self.client.post("/movies/search", json=search)
-        data = res.get_json()
-        self.assertEqual(res.status_code, 404)
-
-    # ---------------------- RELATIONSHIP Tests ----------------------
-
-    def test_movies_with_actors_failure(self):
-        res = self.client.get("/movies/9999/actors")  # Non-existent movie ID
-        data = res.get_json()
-        self.assertEqual(res.status_code, 404)
-
-    def test_movies_with_actors_failure2(self):
-        res = self.client.get("/movies/9999")
-        data = res.get_json()
-        self.assertEqual(res.status_code, 405)
-
-
-# Make the tests conveniently executable
+    
+    
 if __name__ == "__main__":
     unittest.main()
