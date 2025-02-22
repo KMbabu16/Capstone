@@ -11,7 +11,7 @@ itsdangerous==2.1.2             # For secure cookie handling
 Jinja2==3.1.2                   # Templating engine for Flask
 Mako==1.1.4                     # Templating engine
 MarkupSafe==2.1.1               # Required for Jinja2
-psycopg2-binary==2.9.1          # PostgreSQL adapter for Python
+psycopg2==2.9.1          # PostgreSQL adapter for Python
 python-dateutil==2.8.1          # Extensions to the standard Python datetime module
 python-editor==1.0.4            # A simple editor for Python
 pytest==7.1.2                   # Testing framework
