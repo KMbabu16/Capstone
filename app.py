@@ -6,7 +6,6 @@ from datetime import datetime
 from models import setup_db, db, db_drop_and_create_all, Actor, Movie
 from auth.auth import AuthError, requires_auth
 
-load_dotenv()
 def create_app(test_config=None):
     # Create and configure the app
     app = Flask(__name__)
