@@ -5,6 +5,7 @@ from app import create_app
 from models import setup_db, db
 from flask_sqlalchemy import SQLAlchemy
 
+load_dotenv()
 # Environment variables for security
 AUTH0_DOMAIN = "dev-om80m547hwxipo72.us.auth0.com"
 ALGORITHMS = ['RS256']
