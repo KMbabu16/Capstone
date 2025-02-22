@@ -7,7 +7,7 @@ from urllib.request import urlopen
 
 AUTH0_DOMAIN = 'dev-om80m547hwxipo72.us.auth0.com'
 ALGORITHMS = ['RS256']
-API_AUDIENCE = 'FSND'
+API_AUDIENCE = 'fsnd'
 
 ## AuthError Exception
 '''
@@ -77,7 +77,6 @@ def get_token_auth_header():
     return true otherwise
 '''
 def check_permissions(permission, payload):
-    print(permission)
     permissions_app = [
         "delete:actors",	
         "delete:movies",
@@ -98,7 +97,6 @@ def check_permissions(permission, payload):
 
     # Validate each permission in the provided list
     for perm in permission:
-        print(perm)
         if perm not in permissions_app:
             print(f"Permission {perm} is invalid")
             raise AuthError({
@@ -151,7 +149,7 @@ def verify_decode_jwt(token):
                 rsa_key,
                 algorithms=ALGORITHMS,
                 audience=API_AUDIENCE,
-                issuer='https://' + AUTH0_DOMAIN + '/'
+                issuer=f"https://{AUTH0_DOMAIN}/"
             )
 
             return payload
