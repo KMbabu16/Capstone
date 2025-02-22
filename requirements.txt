@@ -20,3 +20,4 @@ six==1.16.0                     # Python 2 and 3 compatibility utilities
 SQLAlchemy==1.4.18              # SQL toolkit and Object-Relational Mapping (ORM) system
 Werkzeug==2.2.3                 # WSGI utility library for Flask
 pyjwt==2.4.0                    # JSON Web Token implementation for Python
+python-jose==3.3.0
